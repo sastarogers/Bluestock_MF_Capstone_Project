@@ -1,0 +1,11 @@
+dataset,shape,anomalies
+01_fund_master.csv,"(40, 15)",No major anomalies detected
+02_nav_history.csv,"(46000, 3)",Date columns loaded as object dtype and should be converted to datetime
+03_aum_by_fund_house.csv,"(90, 5)",Date columns loaded as object dtype and should be converted to datetime
+04_monthly_sip_inflows.csv,"(48, 6)",Contains 12 missing values
+05_category_inflows.csv,"(144, 3)",No major anomalies detected
+06_industry_folio_count.csv,"(21, 6)",No major anomalies detected
+07_scheme_performance.csv,"(40, 19)",No major anomalies detected
+08_investor_transactions.csv,"(32778, 13)",Date columns loaded as object dtype and should be converted to datetime
+09_portfolio_holdings.csv,"(322, 8)",No major anomalies detected
+10_benchmark_indices.csv,"(8050, 3)",Date columns loaded as object dtype and should be converted to datetime
