@@ -1,0 +1,12 @@
+table_name,source_name,source_rows,sqlite_rows,matches
+dim_fund,01_fund_master_clean.csv,40,40,True
+dim_date,dim_date,1643,1643,True
+fact_nav,02_nav_history_clean.csv,64320,64320,True
+fact_transactions,08_investor_transactions_clean.csv,32778,32778,True
+fact_performance,07_scheme_performance_clean.csv,40,40,True
+fact_aum,03_aum_by_fund_house_clean.csv,90,90,True
+monthly_sip_inflows,04_monthly_sip_inflows_clean.csv,48,48,True
+category_inflows,05_category_inflows_clean.csv,144,144,True
+industry_folio_count,06_industry_folio_count_clean.csv,21,21,True
+portfolio_holdings,09_portfolio_holdings_clean.csv,322,322,True
+benchmark_indices,10_benchmark_indices_clean.csv,8050,8050,True

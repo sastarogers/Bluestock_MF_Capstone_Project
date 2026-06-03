@@ -1,0 +1,8 @@
+check,result,details
+nav_history_positive_nav,True,All cleaned NAV values are greater than zero.
+nav_history_calendar_fill,True,Expanded 46000 raw rows to 64320 daily rows; inserted 18320 forward-filled calendar rows.
+transaction_amount_positive,True,0 invalid transaction rows excluded.
+transaction_type_enum,True,"Allowed values: SIP, Lumpsum, Redemption."
+kyc_status_enum,True,"Allowed values: Verified, Pending, Rejected."
+scheme_performance_anomalies,True,0 return/expense anomalies flagged.
+sqlite_row_count_match,True,SQLite table counts match the processed datasets.
