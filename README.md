@@ -124,6 +124,48 @@ Latest Day 2 run:
 - `0` scheme performance anomalies were flagged.
 - SQLite row counts matched all processed source datasets.
 
+## Day 3: Exploratory Data Analysis
+
+Completed:
+
+- Built `notebooks/EDA_Analysis.ipynb`.
+- Exported 18 PNG charts for the final report.
+- Plotted daily NAV trends for all 40 schemes with 2023 bull-run and 2024 correction windows.
+- Created AUM growth, SIP inflow, category inflow, demographics, geography, folio growth, NAV correlation, sector allocation, and risk-return visuals.
+- Documented 10 EDA findings in notebook Markdown cells.
+
+Run Day 3 EDA generation:
+
+```bash
+python3 scripts/day3_eda.py
+```
+
+Day 3 deliverables:
+
+- `notebooks/EDA_Analysis.ipynb`
+- `reports/charts/day3/*.png`
+
+Exported chart set:
+
+- Daily NAV trend for all 40 schemes
+- Indexed NAV growth
+- AUM growth by fund house
+- Latest AUM ranking
+- SIP inflow time series
+- SIP inflow vs active accounts
+- Category inflow heatmap
+- Total category inflows
+- Age group distribution
+- SIP amount by age group
+- Gender split
+- SIP amount by state
+- T30 vs B30 city tier split
+- Folio count growth
+- NAV return correlation heatmap
+- Sector allocation donut
+- Risk-return scatter
+- Expense ratio vs 3-year return
+
 ## SQL Usage
 
 Open the SQLite database:
@@ -158,4 +200,6 @@ Current milestone commits:
 ```bash
 DAY 1: Project Setup + Data Ingestion (ETL)
 Day 2: Cleaned data + SQLite DB loaded
+Update README with Day 2 workflow
+Day 3: EDA analysis and chart exports
 ```
