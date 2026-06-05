@@ -166,6 +166,44 @@ Exported chart set:
 - Risk-return scatter
 - Expense ratio vs 3-year return
 
+## Day 4: Performance Analytics
+
+Completed:
+
+- Computed daily returns for all 40 schemes using `nav_t / nav_t-1 - 1`.
+- Validated daily return distributions for reasonable mean, volatility, min, and max ranges.
+- Computed 1-year and 3-year NAV CAGR for all funds.
+- Flagged true 5-year NAV CAGR as unavailable because the cleaned NAV history starts on `2022-01-03`.
+- Computed Sharpe Ratio using a `6.5%` annual risk-free rate proxy.
+- Computed Sortino Ratio using downside daily volatility.
+- Computed alpha and beta against `NIFTY100` using `scipy.stats.linregress`.
+- Computed maximum drawdown and drawdown date ranges for every fund.
+- Built a 0-100 composite fund scorecard.
+- Generated a 3-year benchmark comparison chart for the top 5 scorecard funds against `NIFTY50` and `NIFTY100`.
+- Computed tracking error versus `NIFTY50` and `NIFTY100`.
+
+Run Day 4 performance analytics:
+
+```bash
+python3 scripts/day4_performance_analytics.py
+```
+
+Day 4 deliverables:
+
+- `notebooks/Performance_Analytics.ipynb`
+- `reports/fund_scorecard.csv`
+- `reports/alpha_beta.csv`
+- `reports/charts/day4/benchmark_comparison_top5_vs_indices.png`
+
+Additional Day 4 outputs:
+
+- `reports/daily_returns.csv`
+- `reports/daily_return_distribution.csv`
+- `reports/cagr_comparison.csv`
+- `reports/risk_ratios.csv`
+- `reports/max_drawdown.csv`
+- `reports/benchmark_tracking_error.csv`
+
 ## SQL Usage
 
 Open the SQLite database:
@@ -202,4 +240,5 @@ DAY 1: Project Setup + Data Ingestion (ETL)
 Day 2: Cleaned data + SQLite DB loaded
 Update README with Day 2 workflow
 Day 3: EDA analysis and chart exports
+Day 4: Performance analytics scorecard
 ```
