@@ -144,12 +144,8 @@ def build_title_page(pdf: BluestockPDF):
     pdf.set_fill_color(*NAVY)
     pdf.rect(0, 0, 210, 297, "F")
 
-    # Logo
-    if LOGO_PATH.exists():
-        pdf.image(str(LOGO_PATH), x=65, y=30, w=80)
-
     # Title
-    pdf.set_y(120)
+    pdf.set_y(80)
     pdf.set_font("Helvetica", "B", 28)
     pdf.set_text_color(*WHITE)
     pdf.cell(0, 14, "Bluestock Mutual Fund", align="C", new_x="LMARGIN", new_y="NEXT")
