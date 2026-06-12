@@ -7,3 +7,7 @@ sqlalchemy
 requests
 scipy
 jupyter
+nbformat
+tabulate
+fpdf2
+python-pptx

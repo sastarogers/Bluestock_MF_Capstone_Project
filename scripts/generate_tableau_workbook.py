@@ -1,10 +1,24 @@
+"""Generate Tableau Workbook
+=========================
+Create a Tableau .twb XML file with pre-configured data sources,
+worksheets, and dashboard layouts for the 4-page Bluestock dashboard.
+
+Usage:
+    python3 scripts/generate_tableau_workbook.py
+"""
+
+import logging
 import os
 
-def create_connection_xml(ds_name, filename, cols_def):
-    """
-    Generates XML for a single textscan datasource.
-    Uses hash notation for relation name/table as required by Tableau.
-    """
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
+def create_connection_xml(ds_name: str, filename: str, cols_def: dict) -> str:
+    """Generate XML for a single textscan datasource connection."""
     col_str = ""
     for i, (name, dtype) in enumerate(cols_def.items()):
         col_str += f'        <column datatype="{dtype}" name="{name}" ordinal="{i}" />\n'
@@ -47,8 +61,8 @@ def create_connection_xml(ds_name, filename, cols_def):
 """
     return xml
 
-def make_worksheet(name, ds_name):
-    """Create a minimal valid worksheet connected to a datasource with empty shelves."""
+def make_worksheet(name: str, ds_name: str) -> str:
+    """Create a minimal valid worksheet XML connected to a datasource."""
     return f"""    <worksheet name='{name}'>
       <table>
         <view>
@@ -72,12 +86,13 @@ def make_worksheet(name, ds_name):
     </worksheet>
 """
 
-def main():
+def main() -> None:
+    """Generate the Tableau workbook .twb file."""
     out_dir = "dashboard"
     os.makedirs(out_dir, exist_ok=True)
     twb_path = os.path.join(out_dir, "bluestock_mutual_funds_dashboard.twb")
     
-    print(f"Creating Tableau Workbook XML at: {twb_path}")
+    log.info(f"Creating Tableau Workbook XML at: {twb_path}")
     
     # ── Column definitions for all 9 data files ──
     columns_page1_aum = {"date": "date", "fund_house": "string", "aum_crore": "real", "aum_lakh_crore": "real", "num_schemes": "integer"}
@@ -231,8 +246,8 @@ def main():
     with open(twb_path, "w", encoding="utf-8") as f:
         f.write(twb_xml)
         
-    print(f"Tableau Workbook (.twb) generated at {twb_path}")
-    print("All 9 data sources are pre-connected. Worksheets have empty shelves ready for field drag-and-drop.")
+    log.info(f"Tableau Workbook (.twb) generated at {twb_path}")
+    log.info("All 9 data sources are pre-connected. Worksheets have empty shelves ready for field drag-and-drop.")
 
 if __name__ == '__main__':
     main()

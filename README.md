@@ -1,244 +1,251 @@
 # Bluestock Mutual Fund Capstone
 
-Data engineering and analytics project for Indian mutual fund datasets. The project ingests raw CSVs, fetches live NAV data, cleans Day 2 datasets, builds a SQLite star schema, and provides analytical SQL queries.
+A comprehensive data engineering and analytics project for the Indian mutual fund industry. The project ingests 10 raw CSV datasets, fetches live NAV data, cleans and validates all sources, builds a SQLite star-schema warehouse, performs exploratory and performance analytics, and delivers an interactive Tableau dashboard.
+
+## Features
+
+- **ETL Pipeline** — Automated ingestion, cleaning, and loading of 10 datasets
+- **Star-Schema Warehouse** — SQLite database with 2 dimensions and 9 fact/auxiliary tables
+- **Exploratory Data Analysis** — 18 publication-quality charts with key findings
+- **Performance Scorecard** — Composite 0–100 fund scoring (CAGR, Sharpe, Alpha, Expense, Drawdown)
+- **Risk Analytics** — VaR/CVaR, rolling Sharpe, alpha/beta regression, max drawdown
+- **Advanced Analytics** — Investor cohort analysis, SIP continuity, sector HHI concentration
+- **Fund Recommender** — Rule-based recommendation engine by risk appetite
+- **Tableau Dashboard** — 4-page interactive dashboard with 17 visualisations
+- **Master Pipeline** — Single-command execution of all pipeline stages
 
 ## Project Structure
 
 ```text
-data/
-  raw/          Raw source CSVs and fetched live NAV files
-  processed/    Cleaned Day 2 CSV outputs
-dashboard/      Future dashboard assets
-notebooks/      Exploratory notebooks
-reports/        Data quality and validation reports
-scripts/        Ingestion, live NAV, and cleaning scripts
-sql/            SQLite schema and analytical queries
+bluestock_mf_capstone/
+├── data/
+│   ├── raw/                     10 source CSVs + live NAV files
+│   └── processed/               Cleaned CSV outputs + dashboard data
+├── dashboard/                   Tableau workbook, screenshots, logo
+├── notebooks/
+│   ├── EDA_Analysis.ipynb       Day 3 exploratory analysis
+│   ├── Performance_Analytics.ipynb  Day 4 performance metrics
+│   └── Advanced_Analytics.ipynb Day 6 advanced analytics
+├── reports/
+│   ├── charts/day3/             18 EDA charts (PNG)
+│   ├── charts/day4/             Benchmark comparison chart
+│   ├── Final_Report.pdf         15-20 page final report
+│   ├── Bluestock_MF_Presentation.pptx  12-slide presentation
+│   ├── fund_scorecard.csv       Composite fund scores
+│   ├── alpha_beta.csv           Alpha/beta regression results
+│   └── ...                      Additional analytics CSVs
+├── scripts/
+│   ├── run_pipeline.py          Master execution script
+│   ├── data_ingestion.py        Day 1: data loading & profiling
+│   ├── live_nav_fetch.py        Day 1: live NAV from mfapi.in
+│   ├── day2_clean_sqlite.py     Day 2: cleaning + SQLite load
+│   ├── day3_eda.py              Day 3: EDA charts + notebook
+│   ├── day4_performance_analytics.py  Day 4: returns & scorecard
+│   ├── build_tableau_data.py    Day 5: Tableau data export
+│   ├── generate_tableau_workbook.py   Day 5: Tableau .twb generation
+│   ├── generate_advanced_notebook.py  Day 6: advanced analytics
+│   ├── recommender.py           Fund recommender engine
+│   ├── generate_final_report.py Final PDF report generator
+│   └── generate_presentation.py PPTX presentation generator
+├── sql/
+│   ├── schema.sql               Star-schema DDL
+│   └── queries.sql              10 analytical SQL queries
+├── data_dictionary.md           Full data dictionary
+├── requirements.txt             Python dependencies
+└── README.md
 ```
 
 ## Setup
 
-Install dependencies:
+### Prerequisites
+
+- Python 3.9+
+- Tableau Desktop or Tableau Public (for dashboard)
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/sastarogers/Bluestock_MF_Capstone_Project.git
+cd Bluestock_MF_Capstone_Project
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-If `python` is not available on your machine, use `python3` in the commands below.
+## How to Run
 
-## Day 1: Data Ingestion
+### Full Pipeline (All Stages)
 
-Completed:
-
-- Created project folder structure.
-- Added `requirements.txt`.
-- Loaded all 10 provided raw CSV datasets using Pandas.
-- Printed shape, dtypes, head, missing values, and duplicate counts.
-- Explored fund master values for fund houses, categories, sub-categories, and risk grades.
-- Validated AMFI codes between `fund_master` and `nav_history`.
-- Fetched live NAV data from `mfapi.in` for HDFC Top 100 Direct and five key schemes.
-
-Run Day 1 ingestion:
+Run the entire pipeline from ingestion to report generation:
 
 ```bash
+python3 scripts/run_pipeline.py
+```
+
+### Selective Execution
+
+```bash
+# List all pipeline stages
+python3 scripts/run_pipeline.py --list
+
+# Run from a specific stage onwards
+python3 scripts/run_pipeline.py --stage 3
+
+# Run only a single stage
+python3 scripts/run_pipeline.py --only 4
+
+# Skip optional stages (e.g., live NAV fetch)
+python3 scripts/run_pipeline.py --skip-optional
+```
+
+### Pipeline Stages
+
+| Stage | Script | Description |
+|-------|--------|-------------|
+| 1 | `data_ingestion.py` | Load and profile 10 raw CSV datasets |
+| 2 | `live_nav_fetch.py` | Fetch live NAV from mfapi.in (optional, requires network) |
+| 3 | `day2_clean_sqlite.py` | Clean datasets + build SQLite star schema |
+| 4 | `day3_eda.py` | Generate 18 EDA charts + Jupyter notebook |
+| 5 | `day4_performance_analytics.py` | Compute CAGR, Sharpe, alpha/beta, scorecard |
+| 6 | `build_tableau_data.py` | Export flat CSVs for Tableau |
+| 7 | `generate_tableau_workbook.py` | Generate .twb Tableau workbook |
+| 8 | `generate_advanced_notebook.py` | Build Advanced Analytics notebook |
+| 9 | `generate_final_report.py` | Generate Final_Report.pdf |
+| 10 | `generate_presentation.py` | Generate 12-slide PPTX presentation |
+
+### Individual Scripts
+
+```bash
+# Day 1: Data ingestion
 python3 scripts/data_ingestion.py
-```
 
-Fetch live NAV data:
-
-```bash
+# Day 1: Fetch live NAV
 python3 scripts/live_nav_fetch.py
-```
 
-Day 1 report:
-
-- `reports/day1_data_quality_summary.csv`
-
-## Day 2: Cleaned Data and SQLite Warehouse
-
-Completed:
-
-- Cleaned `nav_history.csv`:
-  - parsed dates
-  - sorted by `amfi_code` and date
-  - removed duplicate scheme-date rows
-  - validated NAV values greater than zero
-  - forward-filled missing calendar dates within each scheme
-- Cleaned `investor_transactions.csv`:
-  - parsed transaction dates
-  - standardized transaction types to `SIP`, `Lumpsum`, and `Redemption`
-  - validated positive transaction amounts
-  - validated KYC status enum values
-- Cleaned `scheme_performance.csv`:
-  - converted return and risk metrics to numeric values
-  - checked return anomalies
-  - validated expense ratio range from `0.1%` to `2.5%`
-- Wrote SQLite star schema with:
-  - `dim_fund`
-  - `dim_date`
-  - `fact_nav`
-  - `fact_transactions`
-  - `fact_performance`
-  - `fact_aum`
-- Loaded cleaned data into `bluestock_mf.db`.
-- Verified SQLite row counts against processed datasets.
-- Added 10 analytical SQL queries.
-- Added a Markdown data dictionary.
-
-Run Day 2 cleaning and database build:
-
-```bash
+# Day 2: Clean + SQLite
 python3 scripts/day2_clean_sqlite.py
-```
 
-Day 2 deliverables:
-
-- `data/processed/01_fund_master_clean.csv`
-- `data/processed/02_nav_history_clean.csv`
-- `data/processed/03_aum_by_fund_house_clean.csv`
-- `data/processed/04_monthly_sip_inflows_clean.csv`
-- `data/processed/05_category_inflows_clean.csv`
-- `data/processed/06_industry_folio_count_clean.csv`
-- `data/processed/07_scheme_performance_clean.csv`
-- `data/processed/08_investor_transactions_clean.csv`
-- `data/processed/09_portfolio_holdings_clean.csv`
-- `data/processed/10_benchmark_indices_clean.csv`
-- `bluestock_mf.db`
-- `sql/schema.sql`
-- `sql/queries.sql`
-- `data_dictionary.md`
-
-Day 2 reports:
-
-- `reports/day2_data_quality_summary.csv`
-- `reports/day2_sqlite_row_counts.csv`
-- `reports/day2_scheme_performance_anomalies.csv`
-- `reports/day2_invalid_transactions.csv`
-
-## Validation Snapshot
-
-Latest Day 2 run:
-
-- NAV rows expanded from `46,000` raw rows to `64,320` daily cleaned rows.
-- `18,320` missing calendar rows were forward-filled.
-- `0` invalid transaction rows were excluded.
-- `0` scheme performance anomalies were flagged.
-- SQLite row counts matched all processed source datasets.
-
-## Day 3: Exploratory Data Analysis
-
-Completed:
-
-- Built `notebooks/EDA_Analysis.ipynb`.
-- Exported 18 PNG charts for the final report.
-- Plotted daily NAV trends for all 40 schemes with 2023 bull-run and 2024 correction windows.
-- Created AUM growth, SIP inflow, category inflow, demographics, geography, folio growth, NAV correlation, sector allocation, and risk-return visuals.
-- Documented 10 EDA findings in notebook Markdown cells.
-
-Run Day 3 EDA generation:
-
-```bash
+# Day 3: EDA charts
 python3 scripts/day3_eda.py
-```
 
-Day 3 deliverables:
-
-- `notebooks/EDA_Analysis.ipynb`
-- `reports/charts/day3/*.png`
-
-Exported chart set:
-
-- Daily NAV trend for all 40 schemes
-- Indexed NAV growth
-- AUM growth by fund house
-- Latest AUM ranking
-- SIP inflow time series
-- SIP inflow vs active accounts
-- Category inflow heatmap
-- Total category inflows
-- Age group distribution
-- SIP amount by age group
-- Gender split
-- SIP amount by state
-- T30 vs B30 city tier split
-- Folio count growth
-- NAV return correlation heatmap
-- Sector allocation donut
-- Risk-return scatter
-- Expense ratio vs 3-year return
-
-## Day 4: Performance Analytics
-
-Completed:
-
-- Computed daily returns for all 40 schemes using `nav_t / nav_t-1 - 1`.
-- Validated daily return distributions for reasonable mean, volatility, min, and max ranges.
-- Computed 1-year and 3-year NAV CAGR for all funds.
-- Flagged true 5-year NAV CAGR as unavailable because the cleaned NAV history starts on `2022-01-03`.
-- Computed Sharpe Ratio using a `6.5%` annual risk-free rate proxy.
-- Computed Sortino Ratio using downside daily volatility.
-- Computed alpha and beta against `NIFTY100` using `scipy.stats.linregress`.
-- Computed maximum drawdown and drawdown date ranges for every fund.
-- Built a 0-100 composite fund scorecard.
-- Generated a 3-year benchmark comparison chart for the top 5 scorecard funds against `NIFTY50` and `NIFTY100`.
-- Computed tracking error versus `NIFTY50` and `NIFTY100`.
-
-Run Day 4 performance analytics:
-
-```bash
+# Day 4: Performance analytics
 python3 scripts/day4_performance_analytics.py
+
+# Fund recommender (interactive or CLI)
+python3 scripts/recommender.py
+python3 scripts/recommender.py --risk High
 ```
 
-Day 4 deliverables:
+## How to Open the Dashboard
 
-- `notebooks/Performance_Analytics.ipynb`
-- `reports/fund_scorecard.csv`
-- `reports/alpha_beta.csv`
-- `reports/charts/day4/benchmark_comparison_top5_vs_indices.png`
+The project includes a pre-built Tableau workbook at `dashboard/bluestock_mutual_funds_dashboard.twb`.
 
-Additional Day 4 outputs:
+### Using Tableau Desktop
 
-- `reports/daily_returns.csv`
-- `reports/daily_return_distribution.csv`
-- `reports/cagr_comparison.csv`
-- `reports/risk_ratios.csv`
-- `reports/max_drawdown.csv`
-- `reports/benchmark_tracking_error.csv`
+1. Open Tableau Desktop
+2. File → Open → select `dashboard/bluestock_mutual_funds_dashboard.twb`
+3. Data sources connect to CSVs in `data/processed/dashboard_data/`
+4. Navigate between the 4 dashboard tabs
+
+### Dashboard Pages
+
+| Page | Title | Key Visuals |
+|------|-------|-------------|
+| 1 | Industry Overview | KPI cards, AUM timeline, fund house ranking |
+| 2 | Fund Performance | Risk-return scatter, scorecard table, NAV vs benchmark |
+| 3 | Investor Analytics | State map, transaction types, age groups, monthly volume |
+| 4 | SIP & Market Trends | SIP vs Nifty overlay, category heatmap, YoY growth |
+
+### Dashboard Screenshots
+
+Screenshots are available in the `dashboard/` directory:
+- `1. Industry Overview.png`
+- `2. Fund Performance.png`
+- `3. Investor Analytics.png`
+- `4. SIP & Market Trends.png`
+
+A PDF export is also available: `dashboard/bluestock_mutual_funds_dashboard.pdf`
+
+## Dataset Descriptions
+
+| # | Dataset | Records | Description |
+|---|---------|---------|-------------|
+| 01 | Fund Master | 40 | Scheme metadata: fund house, category, risk grade, expense ratio, manager |
+| 02 | NAV History | 46,000 → 64,320 | Daily NAV values per scheme (calendar forward-filled) |
+| 03 | AUM by Fund House | ~80 | Quarterly AUM in crore and lakh crore |
+| 04 | Monthly SIP Inflows | 48 | Monthly SIP inflow, active accounts, YoY growth |
+| 05 | Category Inflows | ~240 | Net inflows by fund category per month |
+| 06 | Industry Folio Count | 12 | Total, equity, debt, hybrid folio counts |
+| 07 | Scheme Performance | 40 | Returns, alpha, beta, Sharpe, Sortino, expense ratio |
+| 08 | Investor Transactions | 50,000 | Individual transactions with demographics |
+| 09 | Portfolio Holdings | ~400 | Stock-level fund compositions with weights |
+| 10 | Benchmark Indices | ~4,000 | NIFTY50, NIFTY100, and other index daily closes |
+
+Full field-level documentation: [`data_dictionary.md`](data_dictionary.md)
+
+## Reports & Deliverables
+
+| Deliverable | Path | Description |
+|-------------|------|-------------|
+| Final Report | `reports/Final_Report.pdf` | 15-20 page comprehensive PDF report |
+| Presentation | `reports/Bluestock_MF_Presentation.pptx` | 12-slide capstone presentation |
+| Fund Scorecard | `reports/fund_scorecard.csv` | Composite 0-100 scores for all 40 funds |
+| Alpha/Beta | `reports/alpha_beta.csv` | OLS regression results vs NIFTY100 |
+| CAGR Comparison | `reports/cagr_comparison.csv` | 1/3/5-year CAGR for all funds |
+| Risk Ratios | `reports/risk_ratios.csv` | Sharpe, Sortino, annualised metrics |
+| Max Drawdown | `reports/max_drawdown.csv` | Drawdown peaks, troughs, recovery |
+| VaR/CVaR | `reports/var_cvar_report.csv` | Value-at-Risk and Expected Shortfall |
+| EDA Charts | `reports/charts/day3/*.png` | 18 exploratory analysis charts |
+| Data Quality | `reports/day2_data_quality_summary.csv` | Validation check results |
 
 ## SQL Usage
 
-Open the SQLite database:
+Open the SQLite database directly:
 
 ```bash
 sqlite3 bluestock_mf.db
 ```
 
-Run analytical queries from:
+Run the included analytical queries:
 
-```bash
-sql/queries.sql
+```sql
+-- Example: Top 5 funds by AUM
+SELECT f.scheme_name, f.fund_house, p.aum_crore
+FROM fact_performance p
+JOIN dim_fund f ON f.amfi_code = p.amfi_code
+ORDER BY p.aum_crore DESC
+LIMIT 5;
 ```
 
-Included examples:
+All 10 queries are in [`sql/queries.sql`](sql/queries.sql).
 
-- Top 5 funds by AUM
-- Average NAV per month
-- SIP YoY growth
-- Transactions by state
-- Funds with expense ratio below 1%
-- Highest alpha funds
-- Redemption pressure by fund
-- Category inflows by month
-- Latest NAV by fund
-- Portfolio sector exposure
+## Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| Language | Python 3.11 |
+| Data Processing | Pandas, NumPy |
+| Database | SQLite, SQLAlchemy |
+| Visualisation | Matplotlib, Seaborn, Plotly |
+| Statistics | SciPy |
+| Notebooks | Jupyter, nbformat |
+| Dashboard | Tableau Desktop |
+| Report Generation | fpdf2, python-pptx |
+| API | requests (mfapi.in) |
 
 ## Git History
 
-Current milestone commits:
-
-```bash
+```text
 DAY 1: Project Setup + Data Ingestion (ETL)
 Day 2: Cleaned data + SQLite DB loaded
-Update README with Day 2 workflow
 Day 3: EDA analysis and chart exports
 Day 4: Performance analytics scorecard
+Day 5: Tableau Dashboard (4-page interactive)
+Day 6: Advanced Analytics (VaR, Sharpe, Cohort, HHI)
+Final: Complete Bluestock MF Capstone
 ```
+
+## License
+
+This project is developed as a capstone project for educational purposes.

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""
-Simple Mutual Fund Recommender
-===============================
+"""Simple Mutual Fund Recommender
+================================
 Input : Risk appetite — Low / Moderate / High
 Output: Top 3 funds by Sharpe Ratio within the matching risk grade.
 
 Usage:
-    python recommender.py              # interactive prompt
-    python recommender.py --risk High  # command-line
+    python3 scripts/recommender.py              # interactive prompt
+    python3 scripts/recommender.py --risk High  # command-line
 """
 
 import argparse
+import logging
 import os
 import sqlite3
 import pandas as pd
@@ -86,7 +86,7 @@ def recommend(risk_appetite: str, top_n: int = 3) -> pd.DataFrame:
     filtered = data[data["risk_category"].isin(matching_risks)].copy()
 
     if filtered.empty:
-        print(f"No funds found for risk appetite: {risk_appetite}")
+        logging.warning("No funds found for risk appetite: %s", risk_appetite)
         return pd.DataFrame()
 
     # Sort by Sharpe Ratio (descending) and pick top N

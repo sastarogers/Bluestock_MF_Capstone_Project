@@ -1,20 +1,38 @@
+"""Build Tableau Data Sources
+==========================
+Extract flat CSV files from the SQLite warehouse for use
+as Tableau data sources across 4 dashboard pages.
+
+Usage:
+    python3 scripts/build_tableau_data.py
+"""
+
+import logging
 import os
 import sqlite3
 import pandas as pd
 import numpy as np
 
-def main():
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
+def main() -> None:
+    """Extract and write all dashboard CSV data sources."""
     db_path = "bluestock_mf.db"
     out_dir = "data/processed/dashboard_data"
     os.makedirs(out_dir, exist_ok=True)
     
-    print(f"Connecting to SQLite database: {db_path}")
+    log.info(f"Connecting to SQLite database: {db_path}")
     conn = sqlite3.connect(db_path)
     
     # -------------------------------------------------------------
     # PAGE 1: Industry Overview
     # -------------------------------------------------------------
-    print("Preparing Page 1 Data: Industry Overview...")
+    log.info("Preparing Page 1 Data: Industry Overview...")
     
     # Query AUM by fund house over time
     aum_df = pd.read_sql_query("""
@@ -28,7 +46,7 @@ def main():
     
     # Get latest date to compute Top 10 latest AUM
     latest_aum_date = aum_df['date'].max()
-    print(f"Latest AUM date found: {latest_aum_date}")
+    log.info(f"Latest AUM date found: {latest_aum_date}")
     
     # Query SIP inflows and folios to include in the same source for time series line charts
     sip_df = pd.read_sql_query("""
@@ -63,7 +81,7 @@ def main():
     # -------------------------------------------------------------
     # PAGE 2: Fund Performance
     # -------------------------------------------------------------
-    print("Preparing Page 2 Data: Fund Performance...")
+    log.info("Preparing Page 2 Data: Fund Performance...")
     
     # Fund scorecard (using the file generated in Day 4)
     scorecard_path = "reports/fund_scorecard.csv"
@@ -114,7 +132,7 @@ def main():
     # Add mapped index to fund
     funds['mapped_index'] = funds['benchmark'].map(benchmark_map)
     
-    print("Computing daily indexed NAV and benchmark comparison...")
+    log.info("Computing daily indexed NAV and benchmark comparison...")
     # Compute indexed NAV and benchmark value starting at 100 for each scheme
     merged_navs = []
     
@@ -159,7 +177,7 @@ def main():
     # -------------------------------------------------------------
     # PAGE 3: Investor Analytics
     # -------------------------------------------------------------
-    print("Preparing Page 3 Data: Investor Analytics...")
+    log.info("Preparing Page 3 Data: Investor Analytics...")
     
     # Read transactions directly (flat table contains all necessary dimensions)
     tx_df = pd.read_sql_query("""
@@ -176,7 +194,7 @@ def main():
     # -------------------------------------------------------------
     # PAGE 4: SIP & Market Trends
     # -------------------------------------------------------------
-    print("Preparing Page 4 Data: SIP & Market Trends...")
+    log.info("Preparing Page 4 Data: SIP & Market Trends...")
     
     # We need:
     # 1. Monthly SIP inflows aligned with monthly NIFTY 50 close
@@ -208,7 +226,7 @@ def main():
     
     # Close connection
     conn.close()
-    print("All flat CSV files successfully written to data/processed/dashboard_data/!")
+    log.info("All flat CSV files successfully written to data/processed/dashboard_data/!")
 
 if __name__ == '__main__':
     main()

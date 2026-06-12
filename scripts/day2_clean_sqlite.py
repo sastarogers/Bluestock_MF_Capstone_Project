@@ -1,12 +1,25 @@
-"""
-Day 2 - Clean raw datasets and load the SQLite warehouse.
+"""Day 2 — Data Cleaning and SQLite Warehouse
+============================================
+Clean all 10 raw CSV datasets, apply validation rules,
+build a star-schema SQLite warehouse, and write quality reports.
+
+Usage:
+    python3 scripts/day2_clean_sqlite.py
 """
 
+import logging
 from pathlib import Path
 import sqlite3
 
 import pandas as pd
 from sqlalchemy import create_engine, text
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -21,10 +34,12 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def date_key(series: pd.Series) -> pd.Series:
+    """Convert a date Series to integer date keys in YYYYMMDD format."""
     return pd.to_datetime(series).dt.strftime("%Y%m%d").astype("int64")
 
 
 def clean_fund_master() -> pd.DataFrame:
+    """Clean fund master: deduplicate by AMFI code, parse dates and numerics."""
     df = pd.read_csv(RAW_DIR / "01_fund_master.csv")
     df = df.drop_duplicates(subset=["amfi_code"]).copy()
     df["launch_date"] = pd.to_datetime(df["launch_date"], errors="coerce")
@@ -41,6 +56,7 @@ def clean_fund_master() -> pd.DataFrame:
 
 
 def clean_nav_history() -> tuple[pd.DataFrame, dict[str, int]]:
+    """Clean NAV history: parse dates, remove invalid NAVs, fill calendar gaps."""
     df = pd.read_csv(RAW_DIR / "02_nav_history.csv")
     raw_rows = len(df)
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -73,6 +89,7 @@ def clean_nav_history() -> tuple[pd.DataFrame, dict[str, int]]:
 
 
 def clean_aum() -> pd.DataFrame:
+    """Clean AUM data: deduplicate, parse dates, validate positive AUM."""
     df = pd.read_csv(RAW_DIR / "03_aum_by_fund_house.csv")
     df = df.drop_duplicates(subset=["date", "fund_house"]).copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -84,6 +101,7 @@ def clean_aum() -> pd.DataFrame:
 
 
 def clean_monthly_sip() -> pd.DataFrame:
+    """Clean monthly SIP inflows: parse month dates, coerce numerics."""
     df = pd.read_csv(RAW_DIR / "04_monthly_sip_inflows.csv")
     df = df.drop_duplicates(subset=["month"]).copy()
     df["month"] = pd.to_datetime(df["month"], format="%Y-%m", errors="coerce")
@@ -95,6 +113,7 @@ def clean_monthly_sip() -> pd.DataFrame:
 
 
 def clean_category_inflows() -> pd.DataFrame:
+    """Clean category inflows: deduplicate, parse months, coerce numerics."""
     df = pd.read_csv(RAW_DIR / "05_category_inflows.csv")
     df = df.drop_duplicates(subset=["month", "category"]).copy()
     df["month"] = pd.to_datetime(df["month"], format="%Y-%m", errors="coerce")
@@ -104,6 +123,7 @@ def clean_category_inflows() -> pd.DataFrame:
 
 
 def clean_industry_folio_count() -> pd.DataFrame:
+    """Clean industry folio counts: parse months, coerce all numeric columns."""
     df = pd.read_csv(RAW_DIR / "06_industry_folio_count.csv")
     df = df.drop_duplicates(subset=["month"]).copy()
     df["month"] = pd.to_datetime(df["month"], format="%Y-%m", errors="coerce")
@@ -115,6 +135,7 @@ def clean_industry_folio_count() -> pd.DataFrame:
 
 
 def clean_scheme_performance() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Clean scheme performance: coerce numerics, flag return/expense anomalies."""
     df = pd.read_csv(RAW_DIR / "07_scheme_performance.csv")
     numeric_cols = [
         "return_1yr_pct",
@@ -151,6 +172,7 @@ def clean_scheme_performance() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def clean_transactions() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Clean investor transactions: standardise types, validate amounts and KYC."""
     df = pd.read_csv(RAW_DIR / "08_investor_transactions.csv")
     df["transaction_date"] = pd.to_datetime(df["transaction_date"], errors="coerce")
     df["date_key"] = date_key(df["transaction_date"])
@@ -190,6 +212,7 @@ def clean_transactions() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def clean_portfolio_holdings() -> pd.DataFrame:
+    """Clean portfolio holdings: parse dates, coerce numerics, deduplicate."""
     df = pd.read_csv(RAW_DIR / "09_portfolio_holdings.csv")
     df["portfolio_date"] = pd.to_datetime(df["portfolio_date"], errors="coerce")
     df["date_key"] = date_key(df["portfolio_date"])
@@ -200,6 +223,7 @@ def clean_portfolio_holdings() -> pd.DataFrame:
 
 
 def clean_benchmark_indices() -> pd.DataFrame:
+    """Clean benchmark indices: parse dates, validate positive close values."""
     df = pd.read_csv(RAW_DIR / "10_benchmark_indices.csv")
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["date_key"] = date_key(df["date"])
@@ -209,6 +233,7 @@ def clean_benchmark_indices() -> pd.DataFrame:
 
 
 def save_processed(datasets: dict[str, pd.DataFrame]) -> None:
+    """Write all cleaned DataFrames to ``data/processed/`` as CSVs."""
     for file_name, df in datasets.items():
         out = df.copy()
         for col in out.select_dtypes(include=["datetime64[ns]"]).columns:
@@ -217,6 +242,7 @@ def save_processed(datasets: dict[str, pd.DataFrame]) -> None:
 
 
 def build_dim_date(datasets: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Build the dim_date dimension table from all date columns across datasets."""
     dates = []
     date_columns = [
         ("01_fund_master_clean.csv", "launch_date"),
@@ -244,6 +270,7 @@ def build_dim_date(datasets: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def load_sqlite(datasets: dict[str, pd.DataFrame], dim_date: pd.DataFrame) -> pd.DataFrame:
+    """Create the SQLite database, load schema, and insert all cleaned datasets."""
     if DB_PATH.exists():
         DB_PATH.unlink()
 
@@ -344,6 +371,7 @@ def write_quality_report(
 
 
 def main() -> None:
+    """Run the full Day 2 cleaning-and-load pipeline."""
     fund_master = clean_fund_master()
     nav_history, nav_metrics = clean_nav_history()
     aum = clean_aum()
@@ -373,10 +401,10 @@ def main() -> None:
     row_counts = load_sqlite(datasets, dim_date)
     write_quality_report(datasets, nav_metrics, performance_anomalies, invalid_transactions, row_counts)
 
-    print("Day 2 processing complete.")
-    print(f"Processed CSVs: {PROCESSED_DIR}")
-    print(f"SQLite database: {DB_PATH}")
-    print(row_counts.to_string(index=False))
+    log.info("Day 2 processing complete.")
+    log.info("Processed CSVs: %s", PROCESSED_DIR)
+    log.info("SQLite database: %s", DB_PATH)
+    log.info("\n%s", row_counts.to_string(index=False))
 
 
 if __name__ == "__main__":

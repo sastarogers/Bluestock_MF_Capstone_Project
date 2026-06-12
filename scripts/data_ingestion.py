@@ -1,11 +1,27 @@
-
 """
-Day 1 - Data Ingestion Script
+Day 1 — Data Ingestion Script
+==============================
 Bluestock Mutual Fund Capstone Project
+
+Loads all 10 raw CSV datasets, prints schema summaries,
+explores fund-master metadata, and validates AMFI codes
+between fund_master and nav_history.
+
+Usage:
+    python3 scripts/data_ingestion.py
 """
 
+import logging
 from pathlib import Path
+
 import pandas as pd
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 RAW_DATA_DIR = BASE_DIR / "data" / "raw"
@@ -20,77 +36,93 @@ DATASETS = [
     "07_scheme_performance.csv",
     "08_investor_transactions.csv",
     "09_portfolio_holdings.csv",
-    "10_benchmark_indices.csv"
+    "10_benchmark_indices.csv",
 ]
 
-print("\n==============================")
-print(" BLUESTOCK MF DATA INGESTION ")
-print("==============================\n")
 
-for file_name in DATASETS:
-    file_path = RAW_DATA_DIR / file_name
+def load_and_profile(file_path: Path) -> pd.DataFrame:
+    """Load a single CSV and log its shape, dtypes, missing values, and duplicate count.
 
-    print(f"\nLoading: {file_name}")
+    Parameters
+    ----------
+    file_path : Path
+        Absolute path to the CSV file.
 
-    try:
-        df = pd.read_csv(file_path)
+    Returns
+    -------
+    pd.DataFrame
+        The loaded DataFrame.
+    """
+    df = pd.read_csv(file_path)
+    log.info("Shape: %s", df.shape)
+    log.info("Dtypes:\n%s", df.dtypes)
+    log.info("Missing values:\n%s", df.isnull().sum())
+    log.info("Duplicate rows: %d", df.duplicated().sum())
+    return df
 
-        print("-" * 60)
-        print("Shape:")
-        print(df.shape)
 
-        print("\nDtypes:")
-        print(df.dtypes)
+def explore_fund_master(df: pd.DataFrame) -> None:
+    """Log unique values for fund houses, categories, sub-categories, and risk grades.
 
-        print("\nHead:")
-        print(df.head())
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The fund_master DataFrame.
+    """
+    log.info("Unique fund houses: %s", sorted(df["fund_house"].unique()))
+    log.info("Unique categories: %s", sorted(df["category"].unique()))
+    log.info("Unique sub-categories: %s", sorted(df["sub_category"].unique()))
+    log.info("Unique risk grades: %s", sorted(df["risk_category"].unique()))
 
-        print("\nMissing Values:")
-        print(df.isnull().sum())
 
-        print("\nDuplicate Rows:")
-        print(df.duplicated().sum())
+def validate_amfi_codes(fund_master: pd.DataFrame, nav_history: pd.DataFrame) -> None:
+    """Check that all AMFI codes in fund_master also appear in nav_history.
 
-        print("-" * 60)
+    Parameters
+    ----------
+    fund_master : pd.DataFrame
+        Fund master DataFrame.
+    nav_history : pd.DataFrame
+        NAV history DataFrame.
+    """
+    fund_codes = set(fund_master["amfi_code"].astype(str))
+    nav_codes = set(nav_history["amfi_code"].astype(str))
+    missing = fund_codes - nav_codes
 
-    except Exception as e:
-        print(f"Error loading {file_name}: {e}")
+    if not missing:
+        log.info("All AMFI codes from fund_master exist in nav_history.")
+    else:
+        log.warning("Missing AMFI codes: %s", missing)
 
-# Explore fund master
-fund_master = pd.read_csv(RAW_DATA_DIR / "01_fund_master.csv")
 
-print("\n==============================")
-print(" FUND MASTER EXPLORATION ")
-print("==============================\n")
+def main() -> None:
+    """Run the full Day 1 data-ingestion pipeline."""
+    log.info("=" * 50)
+    log.info("BLUESTOCK MF DATA INGESTION")
+    log.info("=" * 50)
 
-print("Unique Fund Houses:")
-print(sorted(fund_master["fund_house"].unique()))
+    for file_name in DATASETS:
+        file_path = RAW_DATA_DIR / file_name
+        log.info("Loading: %s", file_name)
+        try:
+            load_and_profile(file_path)
+        except Exception as exc:
+            log.error("Error loading %s: %s", file_name, exc)
 
-print("\nUnique Categories:")
-print(sorted(fund_master["category"].unique()))
+    log.info("=" * 50)
+    log.info("FUND MASTER EXPLORATION")
+    log.info("=" * 50)
+    fund_master = pd.read_csv(RAW_DATA_DIR / "01_fund_master.csv")
+    explore_fund_master(fund_master)
 
-print("\nUnique Sub-Categories:")
-print(sorted(fund_master["sub_category"].unique()))
+    log.info("=" * 50)
+    log.info("AMFI CODE VALIDATION")
+    log.info("=" * 50)
+    nav_history = pd.read_csv(RAW_DATA_DIR / "02_nav_history.csv")
+    validate_amfi_codes(fund_master, nav_history)
 
-print("\nUnique Risk Grades:")
-print(sorted(fund_master["risk_category"].unique()))
+    log.info("Data ingestion completed successfully.")
 
-# Validate AMFI codes
-nav_history = pd.read_csv(RAW_DATA_DIR / "02_nav_history.csv")
 
-fund_codes = set(fund_master["amfi_code"].astype(str))
-nav_codes = set(nav_history["amfi_code"].astype(str))
-
-missing_codes = fund_codes - nav_codes
-
-print("\n==============================")
-print(" AMFI CODE VALIDATION ")
-print("==============================\n")
-
-if len(missing_codes) == 0:
-    print("All AMFI codes from fund_master exist in nav_history.")
-else:
-    print("Missing AMFI Codes:")
-    print(missing_codes)
-
-print("\nData ingestion completed successfully.")
+if __name__ == "__main__":
+    main()

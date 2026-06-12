@@ -1,10 +1,16 @@
-"""
-Day 4 - Mutual fund performance analytics.
+"""Day 4 — Performance Analytics
+===============================
+Compute daily returns, CAGR, risk ratios, alpha/beta, drawdowns,
+composite scorecards, and benchmark tracking error.
+
+Usage:
+    python3 scripts/day4_performance_analytics.py
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 import os
 import textwrap
 
@@ -25,6 +31,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sns
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
 
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 REPORTS_DIR = BASE_DIR / "reports"
@@ -41,6 +54,7 @@ sns.set_theme(style="whitegrid", context="notebook")
 
 
 def load_data() -> dict[str, pd.DataFrame]:
+    """Load cleaned fund, NAV, performance, and benchmark datasets."""
     return {
         "fund": pd.read_csv(PROCESSED_DIR / "01_fund_master_clean.csv", parse_dates=["launch_date"]),
         "nav": pd.read_csv(PROCESSED_DIR / "02_nav_history_clean.csv", parse_dates=["date"]),
@@ -50,6 +64,7 @@ def load_data() -> dict[str, pd.DataFrame]:
 
 
 def compute_daily_returns(nav: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compute daily returns for each scheme and summarise the distribution."""
     returns = nav.sort_values(["amfi_code", "date"]).copy()
     returns["daily_return"] = returns.groupby("amfi_code")["nav"].pct_change()
     returns = returns.dropna(subset=["daily_return"]).reset_index(drop=True)
@@ -67,6 +82,7 @@ def compute_daily_returns(nav: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame
 
 
 def nearest_nav(group: pd.DataFrame, target_date: pd.Timestamp) -> pd.Series:
+    """Return the NAV row nearest to (but not after) *target_date*."""
     eligible = group[group["date"] <= target_date]
     if eligible.empty:
         return group.iloc[0]
@@ -74,6 +90,7 @@ def nearest_nav(group: pd.DataFrame, target_date: pd.Timestamp) -> pd.Series:
 
 
 def compute_cagr(nav: pd.DataFrame, fund: pd.DataFrame) -> pd.DataFrame:
+    """Compute 1-, 3-, and 5-year NAV CAGR for every fund."""
     rows = []
     for amfi_code, group in nav.sort_values("date").groupby("amfi_code"):
         end = group.iloc[-1]
@@ -122,6 +139,7 @@ def compute_cagr(nav: pd.DataFrame, fund: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_risk_metrics(returns: pd.DataFrame) -> pd.DataFrame:
+    """Compute Sharpe and Sortino ratios from daily returns."""
     rf_daily = RISK_FREE_RATE / TRADING_DAYS
     rows = []
     for amfi_code, group in returns.groupby("amfi_code"):
@@ -145,6 +163,7 @@ def compute_risk_metrics(returns: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_alpha_beta(returns: pd.DataFrame, benchmark: pd.DataFrame, fund: pd.DataFrame) -> pd.DataFrame:
+    """OLS regression of fund returns vs NIFTY100 to estimate alpha and beta."""
     nifty100 = benchmark[benchmark["index_name"] == "NIFTY100"].sort_values("date").copy()
     nifty100["benchmark_return"] = nifty100["close_value"].pct_change()
     nifty100 = nifty100.dropna(subset=["benchmark_return"])[["date", "benchmark_return"]]
@@ -171,6 +190,7 @@ def compute_alpha_beta(returns: pd.DataFrame, benchmark: pd.DataFrame, fund: pd.
 
 
 def compute_drawdowns(nav: pd.DataFrame) -> pd.DataFrame:
+    """Compute maximum drawdown, peak, trough, and recovery dates per fund."""
     rows = []
     for amfi_code, group in nav.sort_values("date").groupby("amfi_code"):
         group = group.copy()
@@ -230,6 +250,7 @@ def compute_tracking_error(
 
 
 def percentile_score(series: pd.Series, higher_is_better: bool = True) -> pd.Series:
+    """Rank values as 0–100 percentile scores."""
     ranked = series.rank(pct=True, ascending=not higher_is_better)
     return ranked.fillna(0) * 100
 
@@ -241,6 +262,7 @@ def compute_scorecard(
     alpha_beta: pd.DataFrame,
     drawdown: pd.DataFrame,
 ) -> pd.DataFrame:
+    """Build a 0–100 composite fund scorecard from returns, risk, and alpha."""
     score = (
         fund[["amfi_code", "fund_house", "scheme_name", "category", "sub_category", "plan", "expense_ratio_pct"]]
         .merge(cagr[["amfi_code", "cagr_1yr_pct", "cagr_3yr_pct", "cagr_5yr_pct", "cagr_5yr_available"]], on="amfi_code")
@@ -264,6 +286,7 @@ def compute_scorecard(
 
 
 def make_benchmark_chart(nav: pd.DataFrame, benchmark: pd.DataFrame, scorecard: pd.DataFrame) -> Path:
+    """Plot 3-year indexed performance for top-5 scorecard funds vs NIFTY indices."""
     latest_date = nav["date"].max()
     start_date = latest_date - pd.DateOffset(years=3)
     top5 = scorecard.head(5)[["amfi_code", "scheme_name"]]
@@ -320,6 +343,7 @@ def make_code_cell(source: str) -> nbf.NotebookNode:
 
 
 def build_notebook() -> None:
+    """Create the Performance_Analytics.ipynb Jupyter notebook."""
     nb = nbf.v4.new_notebook()
     cells = [
         make_markdown_cell(
@@ -429,6 +453,7 @@ def build_notebook() -> None:
 
 
 def main() -> None:
+    """Run the full Day 4 performance analytics pipeline."""
     data = load_data()
     returns, return_distribution = compute_daily_returns(data["nav"])
     cagr = compute_cagr(data["nav"], data["fund"])
@@ -442,13 +467,13 @@ def main() -> None:
     save_outputs(returns, return_distribution, cagr, risk, alpha_beta, drawdown, scorecard, tracking_error)
     build_notebook()
 
-    print("Day 4 performance analytics complete.")
-    print(f"Notebook: {NOTEBOOK_PATH}")
-    print(f"Fund scorecard: {REPORTS_DIR / 'fund_scorecard.csv'}")
-    print(f"Alpha beta: {REPORTS_DIR / 'alpha_beta.csv'}")
-    print(f"Benchmark chart: {chart_path}")
-    print("\nTop 5 funds by score:")
-    print(scorecard[["scheme_name", "score_0_100", "cagr_3yr_pct", "sharpe_ratio", "alpha_pct"]].head(5).to_string(index=False))
+    log.info("Day 4 performance analytics complete.")
+    log.info("Notebook: %s", NOTEBOOK_PATH)
+    log.info("Fund scorecard: %s", REPORTS_DIR / "fund_scorecard.csv")
+    log.info("Alpha beta: %s", REPORTS_DIR / "alpha_beta.csv")
+    log.info("Benchmark chart: %s", chart_path)
+    log.info("Top 5 funds by score:\n%s",
+             scorecard[["scheme_name", "score_0_100", "cagr_3yr_pct", "sharpe_ratio", "alpha_pct"]].head(5).to_string(index=False))
 
 
 if __name__ == "__main__":

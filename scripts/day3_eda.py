@@ -1,10 +1,16 @@
-"""
-Day 3 - Exploratory data analysis notebook and chart exports.
+"""Day 3 — Exploratory Data Analysis
+==================================
+Generate 18 publication-quality charts and build an interactive
+Jupyter notebook from cleaned mutual-fund data.
+
+Usage:
+    python3 scripts/day3_eda.py
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 import os
 import textwrap
 
@@ -25,6 +31,13 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import seaborn as sns
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
 
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 NOTEBOOK_DIR = BASE_DIR / "notebooks"
@@ -39,6 +52,7 @@ PALETTE = ["#0F766E", "#2563EB", "#DC2626", "#9333EA", "#EA580C", "#16A34A", "#4
 
 
 def savefig(name: str) -> Path:
+    """Save the current matplotlib figure to the chart directory."""
     path = CHART_DIR / f"{name}.png"
     plt.tight_layout()
     plt.savefig(path, dpi=180, bbox_inches="tight")
@@ -47,6 +61,7 @@ def savefig(name: str) -> Path:
 
 
 def load_data() -> dict[str, pd.DataFrame]:
+    """Load all 10 cleaned datasets from ``data/processed/``."""
     data = {
         "fund": pd.read_csv(PROCESSED_DIR / "01_fund_master_clean.csv", parse_dates=["launch_date"]),
         "nav": pd.read_csv(PROCESSED_DIR / "02_nav_history_clean.csv", parse_dates=["date"]),
@@ -63,6 +78,7 @@ def load_data() -> dict[str, pd.DataFrame]:
 
 
 def chart_nav_trend(data: dict[str, pd.DataFrame]) -> None:
+    """Daily NAV trend for all 40 schemes with bull/correction windows."""
     nav = data["nav"].merge(data["fund"][["amfi_code", "scheme_name"]], on="amfi_code", how="left")
     nav = nav[(nav["date"] >= "2022-01-01") & (nav["date"] <= "2026-12-31")]
 
@@ -80,6 +96,7 @@ def chart_nav_trend(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_nav_indexed(data: dict[str, pd.DataFrame]) -> None:
+    """Indexed NAV growth, base = 100 at first available date."""
     nav = data["nav"].merge(data["fund"][["amfi_code", "scheme_name"]], on="amfi_code", how="left")
     base = nav.sort_values("date").groupby("amfi_code")["nav"].transform("first")
     nav["indexed_nav"] = nav["nav"] / base * 100
@@ -96,6 +113,7 @@ def chart_nav_indexed(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_aum_growth(data: dict[str, pd.DataFrame]) -> None:
+    """AUM growth by fund house, 2022–2025."""
     aum = data["aum"].copy()
     aum["year"] = aum["date"].dt.year
     aum = aum[aum["year"].between(2022, 2025)]
@@ -121,6 +139,7 @@ def chart_aum_growth(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_aum_latest_share(data: dict[str, pd.DataFrame]) -> None:
+    """Latest fund house AUM ranking bar chart."""
     latest = data["aum"].sort_values("date").groupby("fund_house").tail(1)
     latest = latest.sort_values("aum_crore", ascending=False)
     fig, ax = plt.subplots(figsize=(11, 7))
@@ -132,6 +151,7 @@ def chart_aum_latest_share(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_sip_trend(data: dict[str, pd.DataFrame]) -> None:
+    """Monthly SIP inflow time-series with Dec-2025 highlight."""
     sip = data["sip"].copy()
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.plot(sip["month"], sip["sip_inflow_crore"], color="#2563EB", linewidth=2.5, marker="o", markersize=3)
@@ -153,6 +173,7 @@ def chart_sip_trend(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_sip_accounts(data: dict[str, pd.DataFrame]) -> None:
+    """SIP inflows vs active SIP accounts dual-axis plot."""
     sip = data["sip"].copy()
     fig, ax1 = plt.subplots(figsize=(14, 6))
     ax1.plot(sip["month"], sip["sip_inflow_crore"], color="#2563EB", linewidth=2, label="SIP inflow")
@@ -166,6 +187,7 @@ def chart_sip_accounts(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_category_heatmap(data: dict[str, pd.DataFrame]) -> None:
+    """Category net-inflow heatmap by month."""
     cat = data["category"].copy()
     cat["month_label"] = cat["month"].dt.strftime("%Y-%m")
     pivot = cat.pivot_table(index="category", columns="month_label", values="net_inflow_crore", aggfunc="sum")
@@ -178,6 +200,7 @@ def chart_category_heatmap(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_category_totals(data: dict[str, pd.DataFrame]) -> None:
+    """Total category net inflows horizontal bar chart."""
     cat = data["category"].copy()
     totals = cat.groupby("category", as_index=False)["net_inflow_crore"].sum().sort_values("net_inflow_crore", ascending=False)
     fig, ax = plt.subplots(figsize=(11, 6))
@@ -189,6 +212,7 @@ def chart_category_totals(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_age_pie(data: dict[str, pd.DataFrame]) -> None:
+    """Investor age-group distribution pie chart."""
     tx = data["transactions"]
     age_counts = tx["age_group"].value_counts().sort_index()
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -198,6 +222,7 @@ def chart_age_pie(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_sip_box_by_age(data: dict[str, pd.DataFrame]) -> None:
+    """SIP amount boxplot by age group."""
     tx = data["transactions"]
     sip = tx[tx["transaction_type"] == "SIP"].copy()
     order = sorted(sip["age_group"].dropna().unique())
@@ -210,6 +235,7 @@ def chart_sip_box_by_age(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_gender_split(data: dict[str, pd.DataFrame]) -> None:
+    """Investor gender split pie chart."""
     tx = data["transactions"]
     gender = tx["gender"].value_counts()
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -219,6 +245,7 @@ def chart_gender_split(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_state_sip(data: dict[str, pd.DataFrame]) -> None:
+    """SIP amount by state horizontal bar chart."""
     tx = data["transactions"]
     sip = tx[tx["transaction_type"] == "SIP"].groupby("state", as_index=False)["amount_inr"].sum()
     sip = sip.sort_values("amount_inr", ascending=False)
@@ -231,6 +258,7 @@ def chart_state_sip(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_city_tier(data: dict[str, pd.DataFrame]) -> None:
+    """T30 vs B30 city-tier split pie chart."""
     tx = data["transactions"]
     tier = tx["city_tier"].value_counts()
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -240,6 +268,7 @@ def chart_city_tier(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_folio_growth(data: dict[str, pd.DataFrame]) -> None:
+    """Industry folio-count growth line chart."""
     folio = data["folio"].copy()
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.plot(folio["month"], folio["total_folios_crore"], color="#0F766E", linewidth=2.5, marker="o")
@@ -255,6 +284,7 @@ def chart_folio_growth(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_return_correlation(data: dict[str, pd.DataFrame]) -> None:
+    """Daily return correlation heatmap for top-10 funds by AUM."""
     perf = data["performance"].sort_values("aum_crore", ascending=False).head(10)
     selected_codes = perf["amfi_code"].tolist()
     nav = data["nav"][data["nav"]["amfi_code"].isin(selected_codes)].merge(
@@ -270,6 +300,7 @@ def chart_return_correlation(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_sector_donut(data: dict[str, pd.DataFrame]) -> None:
+    """Aggregate sector allocation donut chart across equity funds."""
     holdings = data["holdings"].merge(data["fund"][["amfi_code", "category"]], on="amfi_code", how="left")
     equity = holdings[holdings["category"] == "Equity"]
     sector = equity.groupby("sector", as_index=False)["weight_pct"].sum().sort_values("weight_pct", ascending=False)
@@ -287,6 +318,7 @@ def chart_sector_donut(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_risk_return(data: dict[str, pd.DataFrame]) -> None:
+    """Risk–return scatter: 3-year return vs annualised volatility."""
     perf = data["performance"].copy()
     fig, ax = plt.subplots(figsize=(11, 7))
     sns.scatterplot(
@@ -307,6 +339,7 @@ def chart_risk_return(data: dict[str, pd.DataFrame]) -> None:
 
 
 def chart_expense_vs_return(data: dict[str, pd.DataFrame]) -> None:
+    """Expense ratio vs 3-year return regression plot."""
     perf = data["performance"].copy()
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.regplot(data=perf, x="expense_ratio_pct", y="return_3yr_pct", scatter_kws={"s": 60, "alpha": 0.75}, color="#2563EB", ax=ax)
@@ -318,6 +351,7 @@ def chart_expense_vs_return(data: dict[str, pd.DataFrame]) -> None:
 
 
 def generate_charts(data: dict[str, pd.DataFrame]) -> list[str]:
+    """Run all 18 chart functions and return sorted list of output filenames."""
     chart_functions = [
         chart_nav_trend,
         chart_nav_indexed,
@@ -549,10 +583,10 @@ def main() -> None:
     data = load_data()
     chart_files = generate_charts(data)
     build_notebook(chart_files)
-    print(f"Created notebook: {NOTEBOOK_PATH}")
-    print(f"Exported {len(chart_files)} PNG charts to: {CHART_DIR}")
+    log.info("Created notebook: %s", NOTEBOOK_PATH)
+    log.info("Exported %d PNG charts to: %s", len(chart_files), CHART_DIR)
     for file_name in chart_files:
-        print(f"- {file_name}")
+        log.info("  - %s", file_name)
 
 
 if __name__ == "__main__":
